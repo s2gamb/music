@@ -1,0 +1,57 @@
+name: CI/CD Music Bot
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/music-bot:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/music-bot:latest
+            
+            # Останавливаем старый контейнер, если он есть
+            docker stop music-bot-container || true
+            docker rm music-bot-container || true
+            
+            # Запускаем новый контейнер на порту 8080
+            docker run -d \
+              --name music-bot-container \
+              -p 127.0.0.1:8080:8080 \
+              -e BOT_TOKEN="${{ secrets.BOT_TOKEN }}" \
+              -e PORT="8080" \
+              --restart unless-stopped \
+              ${{ secrets.DOCKERHUB_USERNAME }}/music-bot:latest
