@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS albums (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    artist VARCHAR(255),
+    year SMALLINT,
+    cover_file_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS tracks (
+    id SERIAL PRIMARY KEY,
+    album_id INT NOT NULL REFERENCES albums(id) ON DELETE CASCADE,
+    filename VARCHAR(255) NOT NULL,
+    title VARCHAR(255),
+    file_id TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
