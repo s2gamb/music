@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS tracks (
     album_id INT NOT NULL REFERENCES albums(id) ON DELETE CASCADE,
     filename VARCHAR(255) NOT NULL,
     title VARCHAR(255),
+    artist VARCHAR(255),
+    album VARCHAR(255),
+    duration INTERVAL,
     file_id TEXT NOT NULL UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
