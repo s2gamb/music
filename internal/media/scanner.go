@@ -10,6 +10,10 @@ import (
 	"github.com/s2gamb/music/internal/models"
 )
 
+func sanitize(s string) string {
+	return strings.ReplaceAll(s, "\x00", "")
+}
+
 // GetTrackInfo extracts metadata and duration from an MP3 file.
 func GetTrackInfo(filePath, fileName string) (models.Track, error) {
 	track := models.Track{
@@ -20,9 +24,9 @@ func GetTrackInfo(filePath, fileName string) (models.Track, error) {
 	mp3File, err := id3.Open(filePath)
 	if err == nil {
 		defer mp3File.Close()
-		track.Title = strings.TrimSpace(mp3File.Title())
-		track.Artist = strings.TrimSpace(mp3File.Artist())
-		track.Album = strings.TrimSpace(mp3File.Album())
+		track.Title = sanitize(strings.TrimSpace(mp3File.Title()))
+		track.Artist = sanitize(strings.TrimSpace(mp3File.Artist()))
+		track.Album = sanitize(strings.TrimSpace(mp3File.Album()))
 	}
 
 	// 2. Calculate duration
