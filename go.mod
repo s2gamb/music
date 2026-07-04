@@ -3,6 +3,7 @@ module github.com/s2gamb/music
 go 1.25.5
 
 require (
+	github.com/go-telegram/bot v1.22.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/mikkyang/id3-go v0.0.0-20191012064224-2c6ab3bb1fbd
