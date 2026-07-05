@@ -46,6 +46,7 @@ func main() {
 	// Register handlers explicitly
 	b.RegisterHandler(bot.HandlerTypeMessageText, "start", bot.MatchTypeCommand, handler.Start)
 	b.RegisterHandler(bot.HandlerTypeMessageText, "", bot.MatchTypePrefix, handler.Handle)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "select_", bot.MatchTypePrefix, handler.HandleSelectCallback)
 
 	go func() {
 		log.Printf("Starting bot server on port %s...", port)

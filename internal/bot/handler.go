@@ -35,6 +35,37 @@ func (h *Handler) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 	}
 }
 
+func (h *Handler) HandleSelectCallback(ctx context.Context, b *bot.Bot, update *models.Update) {
+	trackID, err := strconv.Atoi(update.CallbackQuery.Data[len("select_"):])
+	if err != nil {
+		log.Printf("Error parsing track ID: %v", err)
+		return
+	}
+
+	tracks, err := h.repo.GetTracksByAlbumID(ctx, trackID)
+	if err != nil || len(tracks) == 0 {
+		log.Printf("Error fetching tracks: %v", err)
+		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "No tracks found for this album.",
+		})
+		return
+	}
+
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		Text:            "Sending tracks...",
+	})
+
+	for _, track := range tracks {
+		b.SendAudio(ctx, &bot.SendAudioParams{
+			ChatID: update.CallbackQuery.Message.Message.Chat.ID,
+			Audio:  &models.InputFileString{Data: track.FileID},
+			Title:  track.Title,
+		})
+	}
+}
+
 func (h *Handler) showAlbums(ctx context.Context, b *bot.Bot, chatID int64) {
 	albums, err := h.repo.GetAllAlbums(ctx)
 	if err != nil {

@@ -95,3 +95,22 @@ func (r *Repository) GetTrackByFilename(ctx context.Context, filename string) (*
 	}
 	return &track, nil
 }
+
+func (r *Repository) GetTracksByAlbumID(ctx context.Context, albumID int) ([]*models.Track, error) {
+	var tracks []*models.Track
+	rows, err := r.conn.Query(ctx,
+		"SELECT id, album_id, filename, title, artist, album, duration, file_id FROM tracks WHERE album_id = $1",
+		albumID)
+	if err != nil {
+		return nil, fmt.Errorf("querying tracks by album ID: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var track models.Track
+		if err := rows.Scan(&track.ID, &track.AlbumID, &track.Filename, &track.Title, &track.Artist, &track.Album, &track.Duration, &track.FileID); err != nil {
+			return nil, fmt.Errorf("scanning track: %w", err)
+		}
+		tracks = append(tracks, &track)
+	}
+	return tracks, nil
+}
