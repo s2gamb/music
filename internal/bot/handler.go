@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"log"
+	"strconv"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -17,14 +18,14 @@ func NewHandler(repo *db.Repository) *Handler {
 	return &Handler{repo: repo}
 }
 
+// Start command handler
+func (h *Handler) Start(ctx context.Context, b *bot.Bot, update *models.Update) {
+	h.showAlbums(ctx, b, update.Message.Chat.ID)
+}
+
+// Handle handles general text messages
 func (h *Handler) Handle(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if update.Message == nil || update.Message.Text == "" {
-		return
-	}
-
 	log.Printf("Received message: %s", update.Message.Text)
-
-	// Echo response
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
 		Text:   "Эхо: " + update.Message.Text,
@@ -32,4 +33,38 @@ func (h *Handler) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 	if err != nil {
 		log.Printf("Error sending message: %v", err)
 	}
+}
+
+func (h *Handler) showAlbums(ctx context.Context, b *bot.Bot, chatID int64) {
+	albums, err := h.repo.GetAllAlbums(ctx)
+	if err != nil {
+		log.Printf("Error fetching albums: %v", err)
+		return
+	}
+
+	if len(albums) == 0 {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   "No albums found.",
+		})
+		return
+	}
+
+	var keyboard [][]models.InlineKeyboardButton
+	for _, album := range albums {
+		keyboard = append(keyboard, []models.InlineKeyboardButton{
+			{
+				Text:         album.Name + " - " + album.Artist,
+				CallbackData: "select_" + strconv.Itoa(album.ID),
+			},
+		})
+	}
+
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: chatID,
+		Text:   "Choose an album:",
+		ReplyMarkup: &models.InlineKeyboardMarkup{
+			InlineKeyboard: keyboard,
+		},
+	})
 }

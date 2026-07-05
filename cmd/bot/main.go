@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 
 	"github.com/go-telegram/bot"
 	mybot "github.com/s2gamb/music/internal/bot" // Your internal logic
@@ -23,8 +24,10 @@ func main() {
 		log.Fatal("BOT_TOKEN and DATABASE_URL env variables are required")
 	}
 
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
 	// 1. Initialize DB Repository
-	ctx := context.Background()
 	repo, err := db.NewRepository(ctx, dbURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to DB: %v", err)
@@ -35,18 +38,21 @@ func main() {
 	handler := mybot.NewHandler(repo)
 
 	// 3. Setup Bot
-	opts := []bot.Option{
-		bot.WithDefaultHandler(handler.Handle),
-	}
-	b, err := bot.New(token, opts...)
+	b, err := bot.New(token)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// 4. Webhook Setup
-	webhook := b.WebhookHandler()
-	http.HandleFunc("/webhook/"+token, webhook)
+	// Register handlers explicitly
+	b.RegisterHandler(bot.HandlerTypeMessageText, "start", bot.MatchTypeCommand, handler.Start)
+	b.RegisterHandler(bot.HandlerTypeMessageText, "", bot.MatchTypePrefix, handler.Handle)
 
-	log.Printf("Starting bot server on port %s...", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	go func() {
+		log.Printf("Starting bot server on port %s...", port)
+		log.Fatal(http.ListenAndServe(":"+port, b.WebhookHandler()))
+	}()
+
+	log.Printf("Bot listening...")
+
+	b.StartWebhook(ctx)
 }

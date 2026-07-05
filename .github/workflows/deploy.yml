@@ -58,9 +58,5 @@ jobs:
               -e BOT_TOKEN="${{ secrets.BOT_TOKEN }}" \
               -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
               -e PORT="8080" \
-              -e DB_HOST="music_bot_db" \
-              -e DB_USER="music_user" \
-              -e DB_NAME="music_db" \
-              -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
               --restart unless-stopped \
               ${{ secrets.DOCKERHUB_USERNAME }}/music-bot:latest

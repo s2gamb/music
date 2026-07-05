@@ -50,6 +50,24 @@ func (r *Repository) UpdateAlbum(ctx context.Context, album *models.Album) error
 	return err
 }
 
+func (r *Repository) GetAllAlbums(ctx context.Context) ([]*models.Album, error) {
+	rows, err := r.conn.Query(ctx, "SELECT id, name, artist, year, cover_file_id FROM albums")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var albums []*models.Album
+	for rows.Next() {
+		var a models.Album
+		if err := rows.Scan(&a.ID, &a.Name, &a.Artist, &a.Year, &a.CoverFileID); err != nil {
+			return nil, err
+		}
+		albums = append(albums, &a)
+	}
+	return albums, nil
+}
+
 func (r *Repository) CreateTrack(ctx context.Context, track *models.Track) (int, error) {
 	err := r.conn.QueryRow(ctx,
 		"INSERT INTO tracks (album_id, filename, title, artist, album, duration, file_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
