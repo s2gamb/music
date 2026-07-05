@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -38,7 +39,10 @@ func (r *Repository) GetAlbum(ctx context.Context, name string) (*models.Album, 
 	var a models.Album
 	err := r.conn.QueryRow(ctx, "SELECT id, name, artist, year, cover_file_id FROM albums WHERE name = $1", name).Scan(&a.ID, &a.Name, &a.Artist, &a.Year, &a.CoverFileID)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("querying album by name: %w", err)
 	}
 	return &a, nil
 }
@@ -76,4 +80,18 @@ func (r *Repository) CreateTrack(ctx context.Context, track *models.Track) (int,
 		return 0, fmt.Errorf("failed to insert track: %w", err)
 	}
 	return track.ID, nil
+}
+
+func (r *Repository) GetTrackByFilename(ctx context.Context, filename string) (*models.Track, error) {
+	var track models.Track
+	err := r.conn.QueryRow(ctx,
+		"SELECT id, album_id, filename, title, artist, album, duration, file_id FROM tracks WHERE filename = $1",
+		filename).Scan(&track.ID, &track.AlbumID, &track.Filename, &track.Title, &track.Artist, &track.Album, &track.Duration, &track.FileID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("querying track by filename: %w", err)
+	}
+	return &track, nil
 }

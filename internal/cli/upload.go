@@ -64,10 +64,31 @@ var UploadCmd = &cobra.Command{
 			}
 
 			fullPath := filepath.Join(dirPath, entry.Name())
-			track, err := media.GetTrackInfo(fullPath, entry.Name())
+			fileName := entry.Name()
+
+			existing, err := repo.GetTrackByFilename(cmd.Context(), fileName)
+			if err != nil {
+				return fmt.Errorf("database error: %w", err)
+			}
+			if existing != nil {
+				fmt.Printf("Skipping %s: already exists\n", entry.Name())
+				continue
+			}
+
+			track, err := media.GetTrackInfo(fullPath, fileName)
 			if err != nil {
 				fmt.Printf("Error processing %s: %v\n", entry.Name(), err)
 				continue
+			}
+
+			albumName := track.Album
+			var tmpAlbum *models.Album
+			tmpAlbum, err = repo.GetAlbum(cmd.Context(), albumName)
+			if err != nil {
+				return fmt.Errorf("database error: %w", err)
+			}
+			if tmpAlbum != nil {
+				albumCreated = true
 			}
 
 			// Create Album record if not yet created
@@ -95,6 +116,8 @@ var UploadCmd = &cobra.Command{
 				}
 				albumCreated = true
 				fmt.Printf("Album '%s' created (ID: %d)\n", album.Name, album.ID)
+			} else {
+				album = *tmpAlbum
 			}
 
 			// Upload to Telegram
