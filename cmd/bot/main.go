@@ -47,6 +47,12 @@ func main() {
 	b.RegisterHandler(bot.HandlerTypeMessageText, "start", bot.MatchTypeCommand, handler.Start)
 	b.RegisterHandler(bot.HandlerTypeMessageText, "", bot.MatchTypePrefix, handler.Handle)
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "select_", bot.MatchTypePrefix, handler.HandleSelectCallback)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "all_", bot.MatchTypePrefix, handler.HandleAllCallback)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "list_", bot.MatchTypePrefix, handler.HandlePlaylistCallback)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "back_", bot.MatchTypePrefix, handler.HandleBackCallback)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "menu", bot.MatchTypeExact, handler.HandleMenuCallback)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "play_", bot.MatchTypePrefix, handler.HandlePlayTrackCallback)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "share_", bot.MatchTypePrefix, handler.HandleShareCallback)
 
 	go func() {
 		log.Printf("Starting bot server on port %s...", port)

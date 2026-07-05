@@ -47,6 +47,18 @@ func (r *Repository) GetAlbum(ctx context.Context, name string) (*models.Album, 
 	return &a, nil
 }
 
+func (r *Repository) GetAlbumByID(ctx context.Context, id int) (*models.Album, error) {
+	var a models.Album
+	err := r.conn.QueryRow(ctx, "SELECT id, name, artist, year, cover_file_id FROM albums WHERE id = $1", id).Scan(&a.ID, &a.Name, &a.Artist, &a.Year, &a.CoverFileID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("querying album by ID: %w", err)
+	}
+	return &a, nil
+}
+
 func (r *Repository) UpdateAlbum(ctx context.Context, album *models.Album) error {
 	_, err := r.conn.Exec(ctx,
 		"UPDATE albums SET year = $1, cover_file_id = $2 WHERE id = $3",
@@ -80,6 +92,20 @@ func (r *Repository) CreateTrack(ctx context.Context, track *models.Track) (int,
 		return 0, fmt.Errorf("failed to insert track: %w", err)
 	}
 	return track.ID, nil
+}
+
+func (r *Repository) GetTrackByID(ctx context.Context, id int) (*models.Track, error) {
+	var track models.Track
+	err := r.conn.QueryRow(ctx,
+		"SELECT id, album_id, filename, title, artist, album, duration, file_id FROM tracks WHERE id = $1",
+		id).Scan(&track.ID, &track.AlbumID, &track.Filename, &track.Title, &track.Artist, &track.Album, &track.Duration, &track.FileID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("querying track by ID: %w", err)
+	}
+	return &track, nil
 }
 
 func (r *Repository) GetTrackByFilename(ctx context.Context, filename string) (*models.Track, error) {
