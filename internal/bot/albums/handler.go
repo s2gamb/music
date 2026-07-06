@@ -43,20 +43,31 @@ func (h *AlbumHandler) HandleCallbackSelect(ctx context.Context, b *bot.Bot, upd
 		MessageID: update.CallbackQuery.Message.Message.ID,
 	})
 
-	// Send the album photo message
-	b.SendDocument(ctx, &bot.SendDocumentParams{
-		ChatID:   update.CallbackQuery.Message.Message.Chat.ID,
-		Document: &models.InputFileString{Data: album.CoverFileID},
-		Caption:  album.Name + " - " + album.Artist + "\nYear: " + strconv.Itoa(int(album.Year)),
-		ReplyMarkup: &models.InlineKeyboardMarkup{
-			InlineKeyboard: [][]models.InlineKeyboardButton{
-				{{Text: "▶️ Play All", CallbackData: "all_" + strconv.Itoa(album.ID)}},
-				{{Text: "📜 Playlist", CallbackData: "list_" + strconv.Itoa(album.ID)}},
-				{{Text: "🔗 Share", CallbackData: "share_" + strconv.Itoa(album.ID)}},
-				{{Text: "⬅️ Back to Albums", CallbackData: "menu"}},
-			},
+	// Send the album photo or text message
+	caption := album.Name + " - " + album.Artist + "\nYear: " + strconv.Itoa(int(album.Year))
+	replyMarkup := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{{Text: "▶️ Play All", CallbackData: "all_" + strconv.Itoa(album.ID)}},
+			{{Text: "📜 Playlist", CallbackData: "list_" + strconv.Itoa(album.ID)}},
+			{{Text: "🔗 Share", CallbackData: "share_" + strconv.Itoa(album.ID)}},
+			{{Text: "⬅️ Back to Albums", CallbackData: "menu"}},
 		},
-	})
+	}
+
+	if album.CoverFileID != "" {
+		b.SendDocument(ctx, &bot.SendDocumentParams{
+			ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
+			Document:    &models.InputFileString{Data: album.CoverFileID},
+			Caption:     caption,
+			ReplyMarkup: replyMarkup,
+		})
+	} else {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
+			Text:        caption,
+			ReplyMarkup: replyMarkup,
+		})
+	}
 }
 
 func (h *AlbumHandler) HandleCallbackBackToMenu(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -142,12 +153,20 @@ func (h *AlbumHandler) HandleCallbackPlaylist(ctx context.Context, b *bot.Bot, u
 		{Text: "🔙 Back", CallbackData: "back_" + strconv.Itoa(albumID)},
 	})
 
-	// Edit caption to indicate it's a playlist
-	b.EditMessageCaption(ctx, &bot.EditMessageCaptionParams{
-		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
-		MessageID: update.CallbackQuery.Message.Message.ID,
-		Caption:   "Select a track:",
-	})
+	// Edit caption or text to indicate it's a playlist
+	if update.CallbackQuery.Message.Message.Document != nil {
+		b.EditMessageCaption(ctx, &bot.EditMessageCaptionParams{
+			ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+			MessageID: update.CallbackQuery.Message.Message.ID,
+			Caption:   "Select a track:",
+		})
+	} else {
+		b.EditMessageText(ctx, &bot.EditMessageTextParams{
+			ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+			MessageID: update.CallbackQuery.Message.Message.ID,
+			Text:      "Select a track:",
+		})
+	}
 
 	b.EditMessageReplyMarkup(ctx, &bot.EditMessageReplyMarkupParams{
 		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
@@ -167,11 +186,20 @@ func (h *AlbumHandler) HandleCallbackBack(ctx context.Context, b *bot.Bot, updat
 		return
 	}
 
-	b.EditMessageCaption(ctx, &bot.EditMessageCaptionParams{
-		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
-		MessageID: update.CallbackQuery.Message.Message.ID,
-		Caption:   album.Name + " - " + album.Artist + "\nYear: " + strconv.Itoa(int(album.Year)),
-	})
+	caption := album.Name + " - " + album.Artist + "\nYear: " + strconv.Itoa(int(album.Year))
+	if update.CallbackQuery.Message.Message.Document != nil {
+		b.EditMessageCaption(ctx, &bot.EditMessageCaptionParams{
+			ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+			MessageID: update.CallbackQuery.Message.Message.ID,
+			Caption:   caption,
+		})
+	} else {
+		b.EditMessageText(ctx, &bot.EditMessageTextParams{
+			ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+			MessageID: update.CallbackQuery.Message.Message.ID,
+			Text:      caption,
+		})
+	}
 
 	b.EditMessageReplyMarkup(ctx, &bot.EditMessageReplyMarkupParams{
 		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
@@ -245,17 +273,28 @@ func (h *AlbumHandler) ShowAlbumDirectly(ctx context.Context, b *bot.Bot, chatID
 		return
 	}
 
-	b.SendDocument(ctx, &bot.SendDocumentParams{
-		ChatID:   chatID,
-		Document: &models.InputFileString{Data: album.CoverFileID},
-		Caption:  album.Name + " - " + album.Artist + "\nYear: " + strconv.Itoa(int(album.Year)),
-		ReplyMarkup: &models.InlineKeyboardMarkup{
-			InlineKeyboard: [][]models.InlineKeyboardButton{
-				{{Text: "▶️ Play All", CallbackData: "all_" + strconv.Itoa(album.ID)}},
-				{{Text: "📜 Playlist", CallbackData: "list_" + strconv.Itoa(album.ID)}},
-				{{Text: "🔗 Share", CallbackData: "share_" + strconv.Itoa(album.ID)}},
-				{{Text: "⬅️ Back", CallbackData: "menu"}},
-			},
+	caption := album.Name + " - " + album.Artist + "\nYear: " + strconv.Itoa(int(album.Year))
+	replyMarkup := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{{Text: "▶️ Play All", CallbackData: "all_" + strconv.Itoa(album.ID)}},
+			{{Text: "📜 Playlist", CallbackData: "list_" + strconv.Itoa(album.ID)}},
+			{{Text: "🔗 Share", CallbackData: "share_" + strconv.Itoa(album.ID)}},
+			{{Text: "⬅️ Back", CallbackData: "menu"}},
 		},
-	})
+	}
+
+	if album.CoverFileID != "" {
+		b.SendDocument(ctx, &bot.SendDocumentParams{
+			ChatID:      chatID,
+			Document:    &models.InputFileString{Data: album.CoverFileID},
+			Caption:     caption,
+			ReplyMarkup: replyMarkup,
+		})
+	} else {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID:      chatID,
+			Text:        caption,
+			ReplyMarkup: replyMarkup,
+		})
+	}
 }

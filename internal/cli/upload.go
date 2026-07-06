@@ -14,13 +14,18 @@ import (
 )
 
 var (
-	coverPath string
-	year      string
+	coverPath  string
+	year       string
+	albumName  string
+	artistFlag string
 )
 
 func init() {
 	UploadCmd.Flags().StringVar(&coverPath, "cover", "", "Path to the cover image")
 	UploadCmd.Flags().StringVar(&year, "year", "", "Year of the album")
+	UploadCmd.Flags().StringVar(&albumName, "name", "", "Name of the album")
+	UploadCmd.Flags().StringVar(&albumName, "album", "", "Name of the album (alias for --name)")
+	UploadCmd.Flags().StringVar(&artistFlag, "artist", "", "Artist of the album/tracks")
 }
 
 var UploadCmd = &cobra.Command{
@@ -81,9 +86,35 @@ var UploadCmd = &cobra.Command{
 				continue
 			}
 
-			albumName := track.Album
+			// Apply fallback logic for track/album details
+			if track.Album == "" {
+				if albumName != "" {
+					track.Album = albumName
+				} else {
+					absPath, err := filepath.Abs(dirPath)
+					if err == nil {
+						track.Album = filepath.Base(absPath)
+					} else {
+						track.Album = filepath.Base(dirPath)
+					}
+				}
+			}
+
+			if track.Artist == "" {
+				if artistFlag != "" {
+					track.Artist = artistFlag
+				} else {
+					track.Artist = "Unknown Artist"
+				}
+			}
+
+			if track.Title == "" {
+				track.Title = strings.TrimSuffix(fileName, filepath.Ext(fileName))
+			}
+
+			albumKey := track.Album
 			var tmpAlbum *models.Album
-			tmpAlbum, err = repo.GetAlbum(cmd.Context(), albumName)
+			tmpAlbum, err = repo.GetAlbum(cmd.Context(), albumKey)
 			if err != nil {
 				return fmt.Errorf("database error: %w", err)
 			}
